@@ -1,0 +1,44 @@
+A class to easily upload images to your Picasa account. 
+It supports uploading all images in multiple folders and it keeps track of the uploaded files
+to prevent it from uploading the same file twice for those long long uploading jobs.
+
+Requires the gdata gem. If you're running Ruby 1.9.2 (as you should) type in 'gem install gdata19'
+
+Here's an example how to upload all images in a folder recursively to a Picasa account:
+
+require_relative 'lib/uploader.rb'
+
+album_id = 5585265081311735361 # to find the album id go to your_account => the_album => rss
+
+uploader = PicasaUploader.new(your_picasa_login_email, 
+															your_picsa_login_password, 
+															"http://picasaweb.google.com/data/feed/api/user/default/albumid/#{album_id}/")
+															
+
+uploader.upload_folder(Dir.getwd + '/test_images', true) # whatever folder you want plus true for recursive upload
+puts "Uploading..."
+puts "Type 'exit' to safely exit"
+
+# This thread checks if the uploader worker thread is done and if so exits
+check_finished = Thread.new do
+	loop do
+		unless uploader.working
+			puts "Done!"
+			exit
+		end
+		sleep 1
+	end
+end
+
+# Enable the user to abort the upload. When calling abort_upload the thread will not kill itself until it has finished
+# the current image upload.
+loop do
+	input = gets.chomp														
+	if input == "exit"
+		puts "Aborting upload..."
+		check_finished.kill
+		uploader.abort_upload
+		puts "Done!"
+		exit
+	end
+end
